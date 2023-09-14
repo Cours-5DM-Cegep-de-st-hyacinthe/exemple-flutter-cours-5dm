@@ -1,3 +1,5 @@
+import 'package:demo_chat/controleurs/message_controleur.dart';
+import 'package:demo_chat/database/database.dart';
 import 'package:flutter/material.dart';
 
 import 'package:demo_chat/models/messages.dart';
@@ -59,11 +61,45 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late DatabaseHandler _db;
+  late bool _isLoading;
+
+  final MessageControleur _messageControleur = MessageControleur();
+
   List<Message> messages = [];
-  
-  void _envoyerMessage(String nomUtilisateur, String message){
+
+  @override
+  void initState() {
+    super.initState();
+
+    _db = DatabaseHandler();
+
+    if(_db.database == null) {
+      _isLoading = true;
+      _initDatabase();
+    } else {
+      _isLoading = false;
+    }
+  }
+
+  void _initDatabase() async {
+    await _db.initDb();
+
+    var nouveauxMessages = await _messageControleur.getMessages();
+
     setState(() {
-      messages.add(Message(alias: nomUtilisateur, message: message));
+      _isLoading = false;
+      messages = nouveauxMessages;
+    });
+  }
+
+  void _sauvegarderMessage(String nomUtilisateur, String message) async {
+    await _messageControleur.sauvegarderMessage(nomUtilisateur, message);
+
+    var nouveauxMessages = await _messageControleur.getMessages();
+
+    setState(() {
+      messages = nouveauxMessages;
     });
   }
 
@@ -76,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
+      appBar: _isLoading ? null :  AppBar(
         // TRY THIS: Try changing the color here to a specific color (to
         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
         // change color while the other colors stay the same.
@@ -86,17 +122,19 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Expanded(
-              child: SingleChildScrollView(
-                child: VueChat(messages: messages),
-              )
-            ),
-            VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"), envoyerMessage: _envoyerMessage)
-          ],
-        ),
+        child: _isLoading
+          ? const CircularProgressIndicator()
+          : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: SingleChildScrollView(
+                  child: VueChat(messages: messages),
+                )
+              ),
+              VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"), envoyerMessage: _sauvegarderMessage)
+            ],
+          ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
