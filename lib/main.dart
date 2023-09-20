@@ -1,8 +1,11 @@
+import 'package:demo_chat/controleurs/message_controleur.dart';
 import 'package:flutter/material.dart';
 
 import 'package:demo_chat/models/messages.dart';
 import 'package:demo_chat/vues/vue_chat.dart';
 import 'package:demo_chat/vues/vue_envoyer_message.dart';
+
+import 'database/database.dart';
 
 void main() {
   runApp(const MyApp());
@@ -59,11 +62,43 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late DatabaseHandler _db;
+  late bool _isLoading;
   List<Message> messages = [];
+
+  final MessageControleur _messageControleur = MessageControleur();
   
-  void _envoyerMessage(String nomUtilisateur, String message){
+  void _envoyerMessage(String nomUtilisateur, String message) async {
+    await _messageControleur.sauvegarderMessage(nomUtilisateur, message);
+
+    var nouveauxMessages = await _messageControleur.getMessages();
     setState(() {
-      messages.add(Message(alias: nomUtilisateur, message: message));
+      messages = nouveauxMessages;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _db = DatabaseHandler();
+
+    if(_db.database == null) {
+      _isLoading = true;
+      _initDatabase();
+    } else {
+      _isLoading = false;
+    }
+  }
+
+  void _initDatabase() async {
+    await _db.initDB();
+
+    var messagesBD = await _messageControleur.getMessages();
+
+    setState(() {
+      _isLoading = false;
+      messages = messagesBD;
     });
   }
 
@@ -76,7 +111,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
+      appBar: _isLoading ? null : AppBar(
         // TRY THIS: Try changing the color here to a specific color (to
         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
         // change color while the other colors stay the same.
@@ -86,18 +121,20 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Expanded(
-              child: SingleChildScrollView(
-                child: VueChat(messages: messages),
-              )
-            ),
-            VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"), envoyerMessage: _envoyerMessage)
-          ],
-        ),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+          child: _isLoading
+              ? const CircularProgressIndicator()
+              : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: VueChat(messages: messages),
+                    )
+                  ),
+                  VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"), envoyerMessage: _envoyerMessage)
+                ],
+              ),
+        ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
