@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:demo_chat/models/messages.dart';
 import 'package:demo_chat/vues/vue_chat.dart';
 import 'package:demo_chat/vues/vue_envoyer_message.dart';
+import 'package:hive_flutter/adapters.dart';
 
-void main() {
+// Commandes à rouler:
+// flutter pub add hive hive_flutter
+// flutter pub add dev:hive_generator dev:build_runner
+
+void main() async {
+  await Hive.initFlutter();
   runApp(const MyApp());
 }
 
@@ -59,11 +65,41 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Message> messages = [];
+  late List<Message> _messages;
+  late bool _isLoading;
+  Box? _boxMessages;
   
   void _envoyerMessage(String nomUtilisateur, String message){
+
     setState(() {
-      messages.add(Message(alias: nomUtilisateur, message: message));
+      _messages.add(Message(alias: nomUtilisateur, message: message));
+      _boxMessages?.put('messages', _messages);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    if(_boxMessages == null) {
+      _isLoading = true;
+      _initDatabase();
+    } else {
+      _isLoading = false;
+    }
+  }
+
+  void _initDatabase() async {
+    Hive.registerAdapter(MessageAdapter());
+
+    var box = await Hive.openBox('messages');
+
+    List<Message> messages = box.get('messages').cast<Message>() ?? List<Message>.empty(growable: true);
+
+    setState(() {
+      _isLoading = false;
+      _boxMessages = box;
+      _messages = messages;
     });
   }
 
@@ -76,7 +112,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
+      appBar: _isLoading ? null : AppBar(
         // TRY THIS: Try changing the color here to a specific color (to
         // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
         // change color while the other colors stay the same.
@@ -86,17 +122,19 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Expanded(
-              child: SingleChildScrollView(
-                child: VueChat(messages: messages),
-              )
-            ),
-            VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"), envoyerMessage: _envoyerMessage)
-          ],
-        ),
+        child: _isLoading
+          ? CircularProgressIndicator()
+          : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: SingleChildScrollView(
+                  child: VueChat(messages: _messages),
+                )
+              ),
+              VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"), envoyerMessage: _envoyerMessage)
+            ],
+          ),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
