@@ -1,12 +1,13 @@
+import 'package:demo_chat/models/list_message_model.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/messages.dart';
 
 class VueEnvoyerMessage extends StatelessWidget {
   const VueEnvoyerMessage({
-    super.key,
-    required this.envoyerMessage
+    super.key
   });
-
-  final Function envoyerMessage;
 
 
   @override
@@ -18,7 +19,7 @@ class VueEnvoyerMessage extends StatelessWidget {
           controller: textController,
         )),
         IconButton(
-            onPressed: () => envoyerMessage("Mon Nom", textController.text),
+            onPressed: () => Provider.of<ListMessageModel>(context, listen: false).add(Message(alias: "utilisateur1", message: textController.text)),
             icon: const Icon(Icons.send))
       ]
     );
@@ -26,9 +27,7 @@ class VueEnvoyerMessage extends StatelessWidget {
 }
 
 class VueEnvoyerMessageStatefull extends StatefulWidget {
-  const VueEnvoyerMessageStatefull({super.key, required this.envoyerMessage});
-
-  final Function envoyerMessage;
+  const VueEnvoyerMessageStatefull({super.key});
 
   @override
   State<StatefulWidget> createState() => _VueEnvoyerMessageStatefullState();
@@ -50,7 +49,7 @@ class _VueEnvoyerMessageStatefullState extends State<VueEnvoyerMessageStatefull>
             controller: _textController,
           )),
           IconButton(
-              onPressed: () => widget.envoyerMessage("Mon Nom", _textController.text),
+              onPressed: () => Provider.of<ListMessageModel>(context, listen: false).add(Message(alias: "utilisateur1", message: _textController.text)),
               icon: const Icon(Icons.send))
         ]
     );

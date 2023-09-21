@@ -1,12 +1,16 @@
+import 'package:demo_chat/models/list_message_model.dart';
 import 'package:flutter/material.dart';
 
 import 'package:demo_chat/models/messages.dart';
 import 'package:demo_chat/vues/vue_chat.dart';
 import 'package:demo_chat/vues/vue_envoyer_message.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   runApp(const MyApp());
 }
+
+// flutter pub add provider
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -59,13 +63,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Message> messages = [];
-  
-  void _envoyerMessage(String nomUtilisateur, String message){
-    setState(() {
-      messages.add(Message(alias: nomUtilisateur, message: message));
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,17 +83,21 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Expanded(
-              child: SingleChildScrollView(
-                child: VueChat(messages: messages),
-              )
-            ),
-            VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"), envoyerMessage: _envoyerMessage)
-          ],
-        ),
+        // Utiliser un MultiProvider pour plus qu'un changeNotifier
+        child: ChangeNotifierProvider(
+          create: (context) => ListMessageModel(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                  child: SingleChildScrollView(
+                    child: VueChat(),
+                  )
+              ),
+              VueEnvoyerMessageStatefull(key: const Key("vueEnvoyerMessage"))
+            ],
+          ),
+        )
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
