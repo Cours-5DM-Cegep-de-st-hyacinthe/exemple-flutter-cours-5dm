@@ -94,7 +94,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
     var box = await Hive.openBox('messages');
 
-    List<Message> messages = box.get('messages').cast<Message>() ?? List<Message>.empty(growable: true);
+    List<Message> messages = box.get('messages', defaultValue: List<Message>.empty(growable: true))?.cast<Message>();
+
+    // Ou
+    // List<Message> messages = box.get('messages')?.cast<Message>() ?? List<Message>.empty(growable: true);
 
     setState(() {
       _isLoading = false;
